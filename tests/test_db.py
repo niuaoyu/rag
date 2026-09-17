@@ -16,7 +16,7 @@ Base.metadata.create_all(bind=test_engine)
 # 用之前必须先from app.models.user import User 
 
 
-user = User(id=1666, email="sss", password="sss",created_at=datetime.now())
+user = User(id=1666, email="sss", password_hash="sss",created_at=datetime.now())
 db.add(user)
 db.commit()
 db.refresh(user)

@@ -20,7 +20,7 @@ def register_user(payload: UserCreate, db:Session = Depends(get_db)):
 
     user = User(
         email = payload.email,
-        password=hash_password(payload.password)
+        password_hash=hash_password(payload.password)
     )
     db.add(user)
     db.commit()
@@ -34,7 +34,7 @@ def register_user(payload: UserCreate, db:Session = Depends(get_db)):
 def login_user(payload:UserCreate,db:Session=Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
 
-    if user and verify_password(payload.password,user.password):
+    if user and verify_password(payload.password,user.password_hash):
         token = create_token(user.id)
         return {"access_token":token,"token_type":"bearer"}
     

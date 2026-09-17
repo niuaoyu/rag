@@ -4,6 +4,11 @@ from app.main import app
 client = TestClient(app)
 
 def test_health():
-    response = client.get("http://localhost:8000/healthz")
+    response = client.get("/healthz")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    assert response.json()["status"] == "ok"
+
+
+def test_not_found():
+    response = client.get("/notfound")
+    assert response.status_code == 404

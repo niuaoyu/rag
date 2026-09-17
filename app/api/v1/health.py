@@ -7,4 +7,4 @@ router = APIRouter()
 
 @router.get("/healthz")
 def health_check():
-    return {"status": "healthy","version": settings.app_version, "timestamp": datetime.now(UTC)}
+    return {"status": "ok","version": settings.app_version, "time": datetime.now(UTC)}

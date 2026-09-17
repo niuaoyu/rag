@@ -1,3 +1,13 @@
+
+# m2
+bcrypt
+PyJWT
+sqlalchemy
+pydantic
+'pydantic[email]'
+
+
+# m1
 fastapi
 uvicorn[standard]
 pydantic-settings

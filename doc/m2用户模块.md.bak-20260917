@@ -1,0 +1,148 @@
+# 模块 M2 接口契约：用户模块
+
+## 1. 目标（一句话）
+用户能注册、登录，拿到 JWT 访问受保护接口（后面所有模块都要用它鉴权）。
+
+## 2. 目录增量（M1 基础上新增）
+app/
+├── db.py                    # engine + SessionLocal + get_db 依赖
+├── models/
+│   └── user.py              # User 模型
+├── schemas/
+│   └── user.py              # UserCreate / UserOut / Token
+├── core/
+│   └── security.py          # bcrypt 哈希 + JWT 签发/校验
+└── api/v1/
+    └── users.py             # register / login / me 三个路由
+
+## 3. 数据模型
+users 表：
+- id: int, PK, 自增
+- email: varchar(255), unique, not null
+- password_hash: varchar(255), not null   # 只存 bcrypt 哈希
+- created_at: datetime, default now()
+
+## 4. API 契约
+POST /api/v1/users/register
+  请求: {"email": "...", "password": "..."}
+  响应 201: {"user_id": 1, "email": "..."}
+  错误: 400 邮箱格式错/密码过短 / 409 邮箱已注册
+按顺序：
+  接请求：拿到 email 和 password
+  校验格式：email 是不是合法邮箱？password 够不够长？
+  查重：email 是否已经存在？
+  哈希密码：不能存明文
+  插入数据库：拿到新 id
+  返回响应：201 + user_id + email
+
+POST /api/v1/users/login
+  请求: {"email": "...", "password": "..."}
+  响应 200: {"access_token": "eyJ...", "token_type": "bearer"}
+  错误: 401 邮箱或密码错误
+按顺序：
+  接请求：email + password
+  查用户：按 email 查库
+  验证密码：verify_password
+  签发 token：create_token(user.id)
+  返回响应：200 + access_token + token_type
+
+GET /api/v1/users/me        # 需 Authorization: Bearer <token>
+  响应 200: {"user_id": 1, "email": "..."}
+  错误: 401 token 缺失/无效/过期
+按顺序：
+  从请求头拿 token：Authorization: Bearer eyJ...
+  解析 token：decode_token(token) → user_id
+  查用户：按 user_id 查库
+  返回：{"user_id": ..., "email": ...}
+
+
+## 5. 验收标准（Definition of Done）
+- [ ] users 表字段与第 3 节一致
+- [ ] 注册成功 → 库里 password_hash 是 bcrypt 哈希（不是明文）
+- [ ] 重复邮箱注册 → 409
+- [ ] 错误密码登录 → 401；正确密码 → 返回 token
+- [ ] 带 token 访问 /users/me → 200；不带/错 token → 401
+- [ ] pytest ≥3 个测试全绿（注册/登录/鉴权）
+- [ ] JWT_SECRET 走 Settings（.env），代码无硬编码密钥
+- [ ] 复盘 doc 写 3 行"为什么"
+
+## 6. 技术约束
+- 新增依赖：sqlalchemy、bcrypt、PyJWT
+- 数据库先用 SQLite（本地文件），M3 再考虑换库
+- 用同步 SQLAlchemy 2.x，先不引入异步（为什么？留作复盘题）
+- 禁止用 fastapi-users 等现成认证框架——目的就是练手
+- config.py 的 Settings 增加 jwt_secret 字段，.env.example 同步加 JWT_SECRET=
+
+## 7. 会考你的问题（先记着）
+- 为什么密码要哈希？为什么 bcrypt 不用 sha256/md5？
+- JWT 和 session 的区别？过期时间设多久？
+- 并发注册同一邮箱的竞态怎么防？（提示：唯一约束 + 捕获 IntegrityError）
+- 为什么先同步 SQLAlchemy？什么场景必须换异步？
+
+
+POST /api/v1/users/register 验证
+```bash
+# 1. 正常注册 → 201
+curl -i -X POST http://127.0.0.1:8000/api/v1/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "a@b.com", "password": "password123"}'
+# HTTP/1.1 201 Created
+# {"user_id":1,"email":"a@b.com"}
+
+# 2. 重复邮箱 → 409
+curl -i -X POST http://127.0.0.1:8000/api/v1/users/register \
+  -H "Content-Type: application/json" \`
+  -d '{"email": "a@b.com", "password": "password123"}'
+# HTTP/1.1 409 Conflict
+# {"detail":"Email already registered"}
+
+# 3. 密码太短 → 422（MVP 阶段可接受）
+curl -i -X POST http://127.0.0.1:8000/api/v1/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "c@d.com", "password": "123"}'
+# HTTP/1.1 422 Unprocessable Entity
+```
+
+热身题目
+① SQLAlchemy 建模
+   定义 User 模型（对照契约第 3 节）+ engine + SessionLocal
+   验证：create_all 建表，插入一行再查回来
+
+② 密码哈希
+   hash_password(pw) / verify_password(pw, hash)
+   验证：hash 结果不含明文，verify 对错密码返回 False
+
+③ JWT 签发/校验
+   create_token(user_id) / decode_token(token)
+   验证：能解出 user_id；篡改 token 抛错
+
+④ 注册路由
+   EmailStr + password min_length=8 校验；插入库；重复邮箱 → 409
+   验证：curl 三次分别拿到 201 / 400 / 409
+
+⑤ 登录路由
+   查库 → verify_password → 签发 token
+   验证：错密码 401，对密码返回 token
+
+⑥ 受保护接口
+   GET /users/me：从 Authorization: Bearer 解析 token
+   验证：无 token 401，有 token 返回用户
+```bash
+    # ① 注册，登录拿 token
+    curl -X POST http://127.0.0.1:8000/api/v1/users/register \
+      -H "Content-Type:application/json" \
+      -d '{"email":"a@bgg.com","password":"password"}'
+      
+    curl -X POST http://127.0.0.1:8000/api/v1/users/login \
+      -H "Content-Type: application/json" \
+      -d '{"email":"a@b.com","password":"password"}'
+    # ② 带上 token 访问 /me
+    curl -i http://127.0.0.1:8000/api/v1/users/me \
+      -H "Authorization: Bearer <上一步返回的access_token>"
+```
+
+
+
+⑦ 测试收尾
+   pytest + 内存 SQLite，覆盖 201/400/409/401/me
+   验证：全绿 = M2 完成

@@ -2,3 +2,8 @@
 .venv/
 .pytest_cache/
 __pycache__/
+.ace-tool/
+.vscode/
+.agents/
+.codex/
+app.db

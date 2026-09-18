@@ -1,5 +1,5 @@
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
@@ -10,6 +10,15 @@ engine = create_engine(
     connect_args={"check_same_thread": False}, # sqlite 特有的参数，允许在不同线程中使用同一个连接
     echo=True # 打印SQL语句
     )
+
+# 监听连接事件，设置 SQLite 的 PRAGMA foreign_keys=ON，启用外键约束
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    # 仅在使用 SQLite 时设置 PRAGMA
+    if settings.database_url.startswith("sqlite"):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 # 工厂管理一次操作
 SessionLocal = sessionmaker(

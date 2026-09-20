@@ -1,4 +1,6 @@
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings,SettingsConfigDict
 
@@ -17,5 +19,7 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 30
+
+    upload_dir: Path = Path("uploads")
 
 settings = Settings()

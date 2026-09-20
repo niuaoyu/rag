@@ -1,14 +1,15 @@
 
 from datetime import datetime
 from sqlalchemy import String, func
-from sqlalchemy.orm import DeclarativeBase,Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-import typing 
+import typing
+
+from app.models.base import Base 
+
 if typing.TYPE_CHECKING:
     from app.models.document import Document
 
-class Base(DeclarativeBase):
-    pass
 
 class User(Base):
     __tablename__ = "users"

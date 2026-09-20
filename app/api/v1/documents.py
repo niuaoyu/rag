@@ -1,15 +1,35 @@
 
-from fastapi import APIRouter, File, UploadFile, status
+from typing import List
+
+from fastapi import APIRouter, Depends, File, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.services.storage import save_file_to_disk
+from app.api.current_user import get_current_user
+from app.db import get_db
+from app.models.document import Document
+from app.models.user import User
+from app.schemas.document import DocumentOut
+from app.services.document import get_document_by_user_id
+from app.services.storage import save_file_to_disk, save_upload
 
 router = APIRouter(prefix="/api/v1/documents",tags=["documents"])
 
-@router.post("/upload_test",status_code=200)
-def upload_test(file:UploadFile = File(...)):
+@router.post("/upload_test",status_code=201,response_model=DocumentOut)
+def upload(file:UploadFile = File(...), db: Session = Depends(get_db),current_user:User = Depends(get_current_user)):
+    return save_upload(current_user.id,file=file,db=db)
 
-    target ,size = save_file_to_disk(2,file=file)
+@router.get("/list_documents", response_model=list[DocumentOut])
+def list_documents(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return (
+        db.query(Document)
+        .filter(Document.user_id == current_user.id)
+        .order_by(Document.id.desc())
+        .all()
+    )
 
-    return {"target": str(target), "size": size, "content_type": file.content_type}
-
+@router.get("/{doc_id}",response_model=DocumentOut)
+def get_document(doc_id:int,db:Session=Depends(get_db),user:User = Depends(get_current_user)):
+    return get_document_by_user_id(doc_id=doc_id,db=db,user=user)

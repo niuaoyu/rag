@@ -6,13 +6,14 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from app.models.base import Base 
+
 import typing
 if typing.TYPE_CHECKING:
     from app.models.user import User
 
 
-class Base(DeclarativeBase):
-    pass
+
 
 class Document(Base):
     __tablename__ = "documents"
@@ -21,7 +22,7 @@ class Document(Base):
     filename: Mapped[str] = mapped_column(String(255),nullable=False)
     store_path: Mapped[str] = mapped_column(String(255),nullable=False)
     size : Mapped[int] = mapped_column(nullable=False)
-    status: Mapped[int] = mapped_column(String(16),nullable=False,default="pending")
+    status: Mapped[str] = mapped_column(String(16),nullable=False,default="pending")
     created_at: Mapped[datetime] = mapped_column(nullable=False,server_default=func.now())
 
     user_id: Mapped[int] = mapped_column(

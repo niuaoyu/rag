@@ -5,7 +5,7 @@ from tests.conftest import auth_header
 def test_upload_success(client, user_a):
     _, _, token = user_a
     response = client.post(
-        "/api/v1/documents/upload_test",
+        "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("a.pdf", b"%PDF-1.4 fake", "application/pdf")},
     )
@@ -18,7 +18,7 @@ def test_upload_success(client, user_a):
 
 def test_upload_without_auth(client):
     response = client.post(
-        "/api/v1/documents/upload_test",
+        "/api/v1/documents",
         files={"file": ("a.pdf", b"fake", "application/pdf")},
     )
     assert response.status_code == 401
@@ -27,7 +27,7 @@ def test_upload_without_auth(client):
 def test_upload_wrong_extension(client, user_a):
     _, _, token = user_a
     response = client.post(
-        "/api/v1/documents/upload_test",
+        "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("a.exe", b"fake", "application/octet-stream")},
     )
@@ -38,7 +38,7 @@ def test_upload_too_large(client, user_a):
     _, _, token = user_a
     big = b"x" * (10 * 1024 * 1024 + 1)
     response = client.post(
-        "/api/v1/documents/upload_test",
+        "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("big.pdf", big, "application/pdf")},
     )
@@ -48,7 +48,7 @@ def test_upload_too_large(client, user_a):
 def test_upload_chinese_filename(client, user_a):
     _, _, token = user_a
     response = client.post(
-        "/api/v1/documents/upload_test",
+        "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("测试.pdf", b"%PDF-1.4", "application/pdf")},
     )
@@ -58,8 +58,8 @@ def test_upload_chinese_filename(client, user_a):
 
 def test_upload_path_traversal_filename(client, user_a):
     _, _, token = user_a
-    response = client.post(
-        "/api/v1/documents/upload_test",
+    response = client.get(
+        "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("../../etc/passwd.pdf", b"%PDF-1.4", "application/pdf")},
     )
@@ -73,11 +73,11 @@ def test_list_documents(client, user_a):
     # 上传两个
     for name in ("a.pdf", "b.pdf"):
         client.post(
-            "/api/v1/documents/upload_test",
+            "/api/v1/documents",
             headers=auth_header(token),
             files={"file": (name, b"%PDF-1.4", "application/pdf")},
         )
-    response = client.get("/api/v1/documents/list_documents", headers=auth_header(token))
+    response = client.get("/api/v1/documents", headers=auth_header(token))
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
@@ -88,7 +88,7 @@ def test_list_documents(client, user_a):
 def test_get_document(client, user_a):
     _, _, token = user_a
     upload = client.post(
-        "/api/v1/documents/upload_test",
+        "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("a.pdf", b"%PDF-1.4", "application/pdf")},
     )
@@ -105,14 +105,14 @@ def test_isolation(client, user_a, user_b):
     _, _, token_b = user_b
 
     upload = client.post(
-        "/api/v1/documents/upload_test",
+        "/api/v1/documents",
         headers=auth_header(token_a),
         files={"file": ("a.pdf", b"%PDF-1.4", "application/pdf")},
     )
     doc_id = upload.json()["id"]
 
     # B 的列表为空
-    response = client.get("/api/v1/documents/list_documents", headers=auth_header(token_b))
+    response = client.get("/api/v1/documents", headers=auth_header(token_b))
     assert response.json() == []
 
     # B 访问 A 的文档 → 404

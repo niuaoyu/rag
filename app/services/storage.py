@@ -6,7 +6,7 @@ import uuid
 from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.core.config import Settings
+from app.core.config import settings
 from app.db import get_db
 
 
@@ -68,7 +68,7 @@ def save_file_to_disk(user_id:int,file:UploadFile) -> tuple[Path,int]:
     suffix = validate_file_upload(file)
 
     # 目录准备
-    user_dir = Settings.upload_dir / str(user_id)   # 所有用到 UPLOAD_DIR 的地方都换
+    user_dir = settings.upload_dir / str(user_id)   # 所有用到 UPLOAD_DIR 的地方都换
     user_dir.mkdir(parents=True, exist_ok=True)
 
     # uuid重命名

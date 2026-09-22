@@ -14,11 +14,11 @@ from app.services.storage import save_file_to_disk, save_upload
 
 router = APIRouter(prefix="/api/v1/documents",tags=["documents"])
 
-@router.post("/upload_test",status_code=201,response_model=DocumentOut)
+@router.post("",status_code=201,response_model=DocumentOut)
 def upload(file:UploadFile = File(...), db: Session = Depends(get_db),current_user:User = Depends(get_current_user)):
     return save_upload(current_user.id,file=file,db=db)
 
-@router.get("/list_documents", response_model=list[DocumentOut])
+@router.get("", response_model=list[DocumentOut])
 def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

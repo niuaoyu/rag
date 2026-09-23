@@ -1,7 +1,8 @@
 
+import time
 from typing import List
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.current_user import get_current_user
@@ -13,6 +14,16 @@ from app.services.document import get_document_by_user_id
 from app.services.storage import save_file_to_disk, save_upload
 
 router = APIRouter(prefix="/api/v1/documents",tags=["documents"])
+
+def _slow_task(message:str)->None:
+    print(f"start:{message}")
+    time.sleep(2)
+    print(f"end:{message}")
+
+@router.post("/upload-async-test")
+def upload_async_test(background_tasks: BackgroundTasks):
+    background_tasks.add_task(_slow_task, message="hello")
+    return {"ok": True}
 
 @router.post("",status_code=201,response_model=DocumentOut)
 def upload(file:UploadFile = File(...), db: Session = Depends(get_db),current_user:User = Depends(get_current_user)):

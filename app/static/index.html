@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RAG Agent · 个人知识库助手</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ================= 登录页 ================= -->
+<section id="auth-screen" class="screen">
+  <div class="auth-card">
+    <div class="brand">
+      <div class="brand-logo">RAG</div>
+      <div>
+        <h1>个人知识库 Agent</h1>
+        <p class="muted">上传文档 · 带引用问答 · 调用外部工具</p>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="login">登录</button>
+      <button class="tab" data-tab="register">注册</button>
+    </div>
+
+    <form id="login-form" class="auth-form">
+      <label>用户名<input name="username" autocomplete="username" required /></label>
+      <label>密码<input name="password" type="password" autocomplete="current-password" required /></label>
+      <button class="btn primary" type="submit">登录</button>
+    </form>
+
+    <form id="register-form" class="auth-form hidden">
+      <label>用户名（≥3 位）<input name="username" autocomplete="username" required /></label>
+      <label>密码（≥6 位）<input name="password" type="password" autocomplete="new-password" required /></label>
+      <button class="btn primary" type="submit">注册并登录</button>
+    </form>
+
+    <div id="auth-msg" class="msg"></div>
+
+    <details class="hint">
+      <summary>没有账号？点「注册」，几秒即可创建</summary>
+      <p>默认离线运行：哈希向量 + mock 大模型 + mock 天气，无需任何 API Key 就能完整演示。</p>
+    </details>
+  </div>
+</section>
+
+<!-- ================= 主应用 ================= -->
+<section id="app-screen" class="screen hidden">
+  <header class="topbar">
+    <div class="brand small">
+      <div class="brand-logo">RAG</div>
+      <strong>个人知识库 Agent</strong>
+    </div>
+    <div class="topbar-right">
+      <span class="badge" id="health-badge">连接中…</span>
+      <span class="muted" id="current-user"></span>
+      <button class="btn ghost" id="logout-btn">退出</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 左侧：知识库 -->
+    <aside class="panel docs-panel">
+      <div class="panel-head">
+        <h2>我的知识库</h2>
+        <button class="btn ghost small" id="refresh-docs" title="刷新">↻</button>
+      </div>
+
+      <label id="dropzone" class="dropzone">
+        <input type="file" id="file-input" accept=".pdf,.txt,.md,.markdown" hidden />
+        <div class="drop-inner">
+          <div class="drop-icon">⬆</div>
+          <div><strong>点击或拖拽上传</strong></div>
+          <div class="muted small">支持 PDF / TXT / MD，最大 20MB</div>
+        </div>
+      </label>
+
+      <ul id="doc-list" class="doc-list">
+        <li class="empty muted">还没有文档，先上传一个吧</li>
+      </ul>
+    </aside>
+
+    <!-- 右侧：对话 -->
+    <section class="panel chat-panel">
+      <div class="panel-head">
+        <h2 id="conv-title">新会话</h2>
+        <div class="chat-actions">
+          <label class="switch" title="关闭后不调用任何工具，纯知识库问答">
+            <input type="checkbox" id="tools-toggle" checked />
+            <span>启用工具</span>
+          </label>
+          <button class="btn ghost small" id="new-conv">＋ 新会话</button>
+        </div>
+      </div>
+
+      <div id="messages" class="messages">
+        <div class="welcome">
+          <h3>开始提问吧</h3>
+          <p class="muted">系统会先检索你的知识库，生成带来源引用的回答；涉及外部信息时会自动调用工具。</p>
+          <div class="suggestions">
+            <button class="suggestion">volatile为什么不能保证i++线程安全？</button>
+            <button class="suggestion">对比文档里的 synchronized 和 volatile</button>
+            <button class="suggestion">查询北京今天的天气，并结合我知识库中的跑步计划告诉我今天适不适合户外训练。</button>
+          </div>
+        </div>
+      </div>
+
+      <form id="chat-form" class="composer">
+        <textarea id="chat-input" rows="1" placeholder="输入问题，Enter 发送，Shift+Enter 换行" required></textarea>
+        <button class="btn primary" type="submit" id="send-btn">发送</button>
+      </form>
+    </section>
+  </main>
+</section>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

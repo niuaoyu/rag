@@ -1,0 +1,29 @@
+services:
+  api:
+    build: .
+    image: rag-mvp:latest
+    container_name: rag-mvp
+    ports:
+      - "8000:8000"
+    environment:
+      # 默认全离线可跑（hash embedding + mock LLM + mock 天气）
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-hash}
+      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+      - WEATHER_API_KEY=${WEATHER_API_KEY:-}
+      - DATABASE_URL=sqlite:////app/data/app.db
+      - JWT_SECRET=${JWT_SECRET:-dev-only-secret-please-change-in-production-32chars}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - rag-data:/app/data
+      - rag-uploads:/app/uploads
+      - rag-logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  rag-data:
+  rag-uploads:
+  rag-logs:

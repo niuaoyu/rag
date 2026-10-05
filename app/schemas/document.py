@@ -1,16 +1,21 @@
-
 from datetime import datetime
 
 from pydantic import BaseModel
 
 
-class DocumentOut(BaseModel):
-    model_config = {
-        "from_attributes": True,
-    }# 不加的话， Pydantic 会尝试把 Document 对象当 dict 处理
-    
+class UploadResponse(BaseModel):
+    document_id: int
+    filename: str
+    status: str
+    message: str
+
+
+class DocumentResponse(BaseModel):
     id: int
     filename: str
-    size: int
     status: str
+    error: str | None = None
+    chunk_count: int
     created_at: datetime
+
+    model_config = {"from_attributes": True}

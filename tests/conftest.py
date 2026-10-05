@@ -1,101 +1,52 @@
-from fastapi.testclient import TestClient
-import pytest
-from sqlalchemy import StaticPool, create_engine
-from sqlalchemy.orm import sessionmaker
+"""测试环境：使用独立的临时 SQLite + 临时上传目录，避免污染开发数据。"""
+import os
+import tempfile
 
-from app.core.config import settings
-from app.db import get_db
-from app.models.user import Base
+_tmp = tempfile.mkdtemp(prefix="rag_test_")
+os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
+os.environ["UPLOAD_DIR"] = f"{_tmp}/uploads"
+os.environ["EMBEDDING_PROVIDER"] = "hash"
+os.environ["LLM_PROVIDER"] = "mock"
+os.environ["WEATHER_API_KEY"] = ""
+os.environ["JWT_SECRET"] = "test-secret-key-for-pytest-only-32chars!!"
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.db.session import init_db
 from app.main import app
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _db():
+    init_db()
+    yield
+
+
 @pytest.fixture()
-def db_engine():
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread":False}, # FastAPI 的 def 路由跑在线程池，SQLite 默认禁止跨线程。测试时也要加
-        poolclass=StaticPool, #解决内存 SQLite 的「多连接不共享」问题。 
-    )
-    Base.metadata.create_all(bind=engine)  # 建表
-    yield engine
-    Base.metadata.drop_all(bind=engine)
-    engine.dispose()
-
-# 好像没用到
-@pytest.fixture
-def db_session(db_engine):
-    SessionLocal = sessionmaker(bind=db_engine, autocommit=False, autoflush=False)
-    session = SessionLocal()
-    yield session
-    session.close() 
-
-# @pytest.fixture
-# def temp_path(tmp_path):
-#     """返回一个临时目录路径，测试结束后自动删除。"""
-#     return tmp_path
-
-
-@pytest.fixture
-def client(db_engine,tmp_path,monkeypatch):
-    # 测试用的upload_dir路径，避免污染生产环境
-    monkeypatch.setattr(settings,"upload_dir", tmp_path) # 只会在当前的测试里把upload_dir改成tmp_path，测试结束后自动恢复
-    # tmp_path返回一个临时目录路径，测试结束后自动删除 不用管目录是什么？默认会随机给一个
-    SessionLocal = sessionmaker(bind=db_engine, autocommit=False, autoflush=False)
-
-    def override_get_db():
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db # 生产 get_db 换成测试 get_db。测试结束后 clear()
+def client():
     with TestClient(app) as c:
         yield c
-    app.dependency_overrides.clear()
 
 
-@pytest.fixture
-def registered_user(client):
-    """注册一个用户，返回 (email, password)。"""
-    email = "test@example.com"
-    password = "password123"
-    response = client.post(
-        "/api/v1/users/register",
-        json={"email": email, "password": password},
-    )
-    assert response.status_code == 201
-    return email, password
-
-@pytest.fixture
-def user_a(client):
-    """注册一个用户A，返回 (email, password)。"""
-    email = "user_a@example.com"
-    password = "password123"
-    response = client.post(
-        "/api/v1/users/register",
-        json={"email": email, "password": password},
-    )
-    token = client.post(
-        "/api/v1/users/login",
-        json={"email": email, "password": password},
-    ).json()["access_token"]
-    return email, password, token
-
-@pytest.fixture
-def user_b(client):
-    """注册一个用户B，返回 (email, password)。"""
-    email = "user_b@example.com"
-    password = "password123"
-    response = client.post(
-        "/api/v1/users/register",
-        json={"email": email, "password": password},
-    )
-    token = client.post(
-        "/api/v1/users/login",
-        json={"email": email, "password": password},
-    ).json()["access_token"]
-    return email, password, token
-
-def auth_header(token: str) -> dict:
+@pytest.fixture()
+def auth(client):
+    client.post("/auth/register", json={"username": "tester", "password": "tester123"})
+    token = client.post("/auth/login", json={"username": "tester", "password": "tester123"}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+SAMPLE = """
+volatile关键字只能保证可见性和有序性，不能保证原子性。i++包含读取、加1、写回三个步骤，
+多线程执行i++可能交错，导致丢失更新。要保证原子性应使用synchronized或AtomicInteger。
+synchronized可以保证原子性、可见性和有序性，是互斥锁。volatile是轻量级同步，不阻塞线程。
+跑步计划：每周一三五早上跑5公里，周末长距离10公里，下雨或空气质量差就不跑。
+""".strip()
+
+
+@pytest.fixture()
+def uploaded_document(client, auth):
+    files = {"file": ("Java并发编程.txt", SAMPLE.encode("utf-8"), "text/plain")}
+    resp = client.post("/documents/upload", files=files, headers=auth)
+    assert resp.status_code == 202
+    return resp.json()["document_id"]

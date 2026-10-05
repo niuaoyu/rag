@@ -1,23 +1,40 @@
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api import auth, chat, documents
 from app.core.config import settings
+from app.core.logging import get_logger, setup_logging
+from app.db.session import init_db
 
-# APIRouter
-from app.api.v1 import api_router
-
-from app.db import engine
-from app.models.user import Base
-from app.models import __all__ 
-Base.metadata.create_all(bind=engine) 
-# 目的是建表，建表时会自动创建外键约束。
-# SQLite 默认不启用外键约束，需要在连接时设置 PRAGMA foreign_keys=ON。SQLAlchemy 里可以通过 event.listen() 来设置。
-
-app = FastAPI(title=settings.app_name,version=settings.app_version)
-
-app.include_router(api_router)
+setup_logging()
+logger = get_logger(__name__)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    logger.info("%s v%s started", settings.app_name, settings.app_version)
+    yield
+    logger.info("shutdown")
 
-@app.get("/ping")
-def ping():
-    return {"pong": True}
+
+app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router)
+app.include_router(documents.router)
+app.include_router(chat.router)
+
+
+@app.get("/health", tags=["system"])
+def health():
+    return {"status": "ok", "app": settings.app_name, "version": settings.app_version}

@@ -1,19 +1,13 @@
-
-
-#m3
-python-multipart
-
-# m2
-bcrypt
-PyJWT
-sqlalchemy
-pydantic
-'pydantic[email]'
-
-
-# m1
-fastapi
-uvicorn[standard]
-pydantic-settings
-pytest
-httpx2
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.6
+pydantic-settings>=2.2
+python-multipart>=0.0.9
+pyjwt>=2.8
+bcrypt>=4.1
+sqlalchemy>=2.0
+numpy>=1.26
+pypdf>=4.0
+requests>=2.31
+pytest>=8.0
+httpx>=0.27

@@ -2,9 +2,14 @@
 .venv/
 .pytest_cache/
 __pycache__/
+*.pyc
+logs/
+app.db
+*.db
+uploads/*
+!uploads/.gitkeep
+doc/
 .ace-tool/
 .vscode/
 .agents/
 .codex/
-app.db
-uploads/**

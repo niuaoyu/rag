@@ -1,19 +1,26 @@
-from typing import Literal
+from datetime import datetime
 
-from pydantic import BaseModel,EmailStr,Field
-
-
-class UserCreate(BaseModel):
-    email:EmailStr
-    password:str = Field(max_length=72,min_length=8)
+from pydantic import BaseModel, Field
 
 
-class UserOut(BaseModel):
-    user_id : int 
-    email:EmailStr
-
-class Token(BaseModel):
-    access_token:str
-    token_type:Literal["bearer"] = "bearer"
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=64)
+    password: str = Field(min_length=6, max_length=128)
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

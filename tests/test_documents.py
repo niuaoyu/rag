@@ -56,16 +56,29 @@ def test_upload_chinese_filename(client, user_a):
     assert response.json()["filename"] == "测试.pdf"
 
 
-def test_upload_path_traversal_filename(client, user_a):
+def test_upload_path_traversal_filename(client, user_a, tmp_path):
+    """文件名里带 ../ 时：落盘路径必须仍是 uploads/<user_id>/<uuid>.ext，不能逃出目录。
+
+    上一版这里写成了 client.get(...) 直接 TypeError；修完之后也不能只断言 201 ——
+    那样这个用例什么都没测（文件真被写到 /etc 也会通过）。所以这里查磁盘。
+    """
     _, _, token = user_a
-    response = client.get(
+    response = client.post(
         "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("../../etc/passwd.pdf", b"%PDF-1.4", "application/pdf")},
     )
     assert response.status_code == 201
-    # 落盘路径是 uuid，不含路径穿越
-    # 这个断言需要查磁盘，M3 不强制
+    # 入库的 filename 原样保留（只用于展示），落盘名是 uuid
+    assert response.json()["filename"] == "../../etc/passwd.pdf"
+
+    user_dir = tmp_path / "1"
+    stored = list(user_dir.iterdir())
+    assert len(stored) == 1
+    stored_name = stored[0].name
+    assert ".." not in stored_name and "/" not in stored_name
+    assert stored_name.endswith(".pdf")
+    assert stored[0].parent == user_dir  # 真的没跑出 uploads 目录
 
 
 def test_list_documents(client, user_a):

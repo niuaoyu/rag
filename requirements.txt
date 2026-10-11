@@ -1,19 +1,31 @@
 
 
-#m3
-python-multipart
+# m1 骨架
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+pydantic[email]
 
-# m2
+# m2 用户
 bcrypt
 PyJWT
 sqlalchemy
-pydantic
-'pydantic[email]'
 
+# m3 上传
+python-multipart
 
-# m1
-fastapi
-uvicorn[standard]
-pydantic-settings
+# m4/m5 解析与切块（pypdf 用于抽取 PDF 文本；tiktoken 用于真实 token 计数，装不上时自动退化为估算）
+pypdf
+tiktoken
+
+# m6/m7 向量入库与检索
+qdrant-client
+numpy
+
+# m8 LLM 调用：直接用 httpx 打 OpenAI 兼容接口，不引厂商 SDK
+httpx
+
+# m10 测试
 pytest
 httpx2

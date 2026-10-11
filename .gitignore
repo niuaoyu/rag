@@ -8,3 +8,4 @@ __pycache__/
 .codex/
 app.db
 uploads/**
+qdrant_data/

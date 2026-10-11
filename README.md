@@ -314,3 +314,59 @@ Dockerfile / docker-compose.yml / Makefile / .env.example
 第一阶段最小可用产品已完成：完整链路可运行、浏览器可演示。
 
 按原计划，**接下来不是继续加功能，而是从招聘视角倒推**：哪些部分值得写进简历、面试官会怎么拷打、哪些能力需要真正变成自己的，然后再进入撤 AI 重写与深耕。
+
+
+---
+
+## 2026-10-11 · arena/mvp-0.1：真实大模型 + SSE 流式 + 统一错误出口
+
+### 真实大模型接入（校园 OpenAI 兼容网关）
+
+`.env` 里三个变量切换 mock ↔ 真实模型（密钥不入库，`.env` 已在 `.gitignore`）：
+
+```bash
+LLM_PROVIDER=openai
+LLM_MODEL=deepseek-v41-flash
+LLM_BASE_URL=https://llm.ujn.edu.cn/v1
+LLM_API_KEY=ujn-****            # 校园网关签发
+LLM_REASONING_EFFORT=low        # 推理型模型必配！否则输出全进思考通道、content 为空
+LLM_MAX_TOKENS=0                # 0=不传；推理模型配小值会截断
+```
+
+> 踩坑记录：该类网关不设置 `reasoning_effort` 时，token 全部进入 `reasoning_content`，
+> `content` 返回空。客户端已做防御：空 content 且无 tool_calls 时抛出带修复指引的 `LLMError`。
+
+### SSE 流式问答
+
+```bash
+curl -N -X POST http://localhost:8000/chat/stream \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"question": "volatile 为什么不能保证原子性？"}'
+```
+
+事件序列（`data: {json}\n\n`）：
+`meta`(会话id) → `stage` → `citations`(先行) → [`tool_calls`]* → `delta`* → `done`
+
+### 统一错误出口
+
+所有错误返回 `{"code": "...", "message": "..."}`：
+- 业务错误带语义 code（如 `conversation_not_found`）
+- 框架/路由错误 `http_401` / `http_404` / `http_422`（同时接管 starlette 层）
+- 兜底 500 `internal_error`（不泄漏内部细节）
+
+### Agent 工具预算
+
+`TOOL_MAX_ROUNDS=3`：模型连续 tool_call 超过预算即去掉工具强制生成最终答案，防死循环。
+工具注册表在 `app/services/tools/__init__.py`，新增工具 = schema + 实现函数注册一行。
+
+### 实测数字（2026-10-11 服务器实测）
+
+| 项 | 值 |
+|---|---|
+| pytest | 29 passed / 0 failed（5.4s） |
+| 真模型 KB 问答 | 3.58s，4 条引用，逐句标注页码 |
+| 真模型双工具串联 | 14.16s（weather + current_time，模型自主决定） |
+| SSE 流式 | TTFT 0.70s / 总 3.96s / 95 deltas |
+| Docker | arena-mvp:0.1 = 428MB，healthy，容器内全链路 4.86s |
+
+详细决策与边界：见 `doc/架构与决策.md`、`doc/验收清单.md`。

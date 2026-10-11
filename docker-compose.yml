@@ -12,6 +12,11 @@ services:
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.2}
+      - LLM_REASONING_EFFORT=${LLM_REASONING_EFFORT:-}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-0}
+      - LLM_TIMEOUT=${LLM_TIMEOUT:-90}
+      - TOOL_MAX_ROUNDS=${TOOL_MAX_ROUNDS:-3}
       - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
       - WEATHER_API_KEY=${WEATHER_API_KEY:-}
       - DATABASE_URL=sqlite:////app/data/app.db

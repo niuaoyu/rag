@@ -8,7 +8,6 @@ app.db
 *.db
 uploads/*
 !uploads/.gitkeep
-doc/
 .ace-tool/
 .vscode/
 .agents/

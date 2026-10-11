@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.openai.com/v1"
     llm_api_key: str = ""
     llm_temperature: float = 0.2
+    # 推理型网关（如 DeepSeek-R 系）需要显式设置 effort，否则输出可能全进思考通道、content 为空。
+    # 空字符串 = 不向网关传递该参数（兼容 OpenAI 非推理模型）。
+    llm_reasoning_effort: str = ""
+    # 0 = 不传 max_tokens。注意：推理模型给小 max_tokens 会把预算耗在思考上导致 content 截断。
+    llm_max_tokens: int = 0
+    llm_timeout: int = 90
+
+    # Agent 工具调用轮次上限（防止模型反复 tool_call 不收敛）
+    tool_max_rounds: int = 3
 
     # Weather tool
     weather_api_key: str = ""

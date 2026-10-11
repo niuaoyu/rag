@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv/
+__pycache__/
+.pytest_cache/
+qdrant_data/
+uploads/
+app.db
+.env
+tests/
+doc/
+*.md

@@ -1,0 +1,26 @@
+[
+  {
+    "question": "检索阶段解决的核心问题有哪些？",
+    "expected_keywords": ["相关性"]
+  },
+  {
+    "question": "为什么块与块之间要保留重叠？",
+    "expected_keywords": ["重叠"]
+  },
+  {
+    "question": "什么样的问答不该用向量检索？",
+    "expected_keywords": ["聚合"]
+  },
+  {
+    "question": "Agent 循环包含哪四步？",
+    "expected_keywords": ["观察"]
+  },
+  {
+    "question": "上下文被中间结果撑满了怎么办？",
+    "expected_keywords": ["压缩"]
+  },
+  {
+    "question": "工具调用失败为什么要当成常态处理？",
+    "expected_keywords": ["超时"]
+  }
+]

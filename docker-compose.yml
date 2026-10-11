@@ -1,0 +1,42 @@
+# 生产形态：API 容器 + Qdrant 服务端。
+# 为什么这里不用 Qdrant 嵌入式模式：嵌入式对目录独占文件锁，多 worker / 多副本会互相冲突，
+# 且没有副本与备份。开发可以嵌入式，上线必须走服务端（见 app/services/vector_store.py 的说明）。
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - qdrant
+    environment:
+      # 密钥一律从宿主环境注入，绝不写进镜像或仓库
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 里设置 JWT_SECRET（至少 32 字符）}
+      DATABASE_URL: sqlite:////data/app.db
+      UPLOAD_DIR: /data/uploads
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: chunks
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1024}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL: ${LLM_MODEL:-glm-4-flash}
+      CHUNK_SIZE_TOKENS: ${CHUNK_SIZE_TOKENS:-400}
+      CHUNK_OVERLAP_TOKENS: ${CHUNK_OVERLAP_TOKENS:-60}
+    volumes:
+      - app_data:/data
+    ports:
+      - "8000:8000"
+
+volumes:
+  qdrant_data:
+  app_data:

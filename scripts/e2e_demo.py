@@ -121,11 +121,19 @@ def main() -> None:
 
         _step("3. 提问（mode=llm 才是真模型回答；retrieval_only 表示没配 key）")
         started = time.perf_counter()
-        answer = client.post(
+        response = client.post(
             f"{base}/api/v1/chat/ask",
             headers={"Authorization": f"Bearer {token}"},
             json={"question": args.question, "top_k": 3},
-        ).json()
+        )
+        if response.status_code != 200 or "application/json" not in response.headers.get(
+            "content-type", ""
+        ):
+            raise SystemExit(
+                f"提问失败：http={response.status_code} "
+                f"content-type={response.headers.get('content-type')} body={response.text[:300]}"
+            )
+        answer = response.json()
         wall_ms = int((time.perf_counter() - started) * 1000)
         print(f"  question: {answer['question']}")
         print(f"  mode: {answer['mode']}  retrieved={answer['retrieved_count']}  "

@@ -8,7 +8,7 @@
 
 import pytest
 
-from app.core.tokenizer import count_tokens
+from app.core.tokenizer import count_tokens, tail_within_tokens
 from app.services.chunker import chunk_text
 
 PARA = "检索增强生成把外部知识库接进大模型，先检索再生成，答案里带上来源引用。"
@@ -39,8 +39,10 @@ def test_each_chunk_respects_size_bound():
 def test_adjacent_chunks_overlap():
     chunks = chunk_text(_long_text(), size_tokens=120, overlap_tokens=30)
     assert len(chunks) >= 3
-    tail = chunks[0].text[-20:]
-    assert tail in chunks[1].text
+    tail = tail_within_tokens(chunks[0].text, 30)
+    assert tail, "重叠窗口不该是空的"
+    assert chunks[1].text.startswith(tail), "后一块必须以「前一块的字符对齐后缀」开头"
+
 
 
 def test_single_huge_paragraph_is_hard_split():
@@ -49,7 +51,8 @@ def test_single_huge_paragraph_is_hard_split():
     chunks = chunk_text(text, size_tokens=100, overlap_tokens=10)
     assert len(chunks) > 1
     for chunk in chunks:
-        assert chunk.token_count <= 110
+        # 上界 = size + overlap + 1（重叠前缀与正文之间的换行符也算 token）
+        assert chunk.token_count <= 100 + 10 + 1
 
 
 def test_overlap_not_smaller_than_size_is_clamped():

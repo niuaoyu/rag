@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from app.core.tokenizer import count_tokens, truncate_to_tokens
+from app.core.tokenizer import count_tokens, head_within_tokens, tail_within_tokens
 
 _PARAGRAPH_SPLIT = re.compile(r"\n\s*\n")
 _SENTENCE_SPLIT = re.compile(r"(?<=[。！？!?；;\.\n])")
@@ -42,10 +42,14 @@ def _split_oversized(unit: str, size_tokens: int) -> list[str]:
         if count_tokens(sentence) <= size_tokens:
             pieces.append(sentence)
             continue
-        # 硬切：按估算的 字符/token 比换算步长，保证不会切出超过上限的碎片
-        step = max(int(len(sentence) * size_tokens / max(count_tokens(sentence), 1)), 1)
-        for i in range(0, len(sentence), step):
-            pieces.append(sentence[i : i + step])
+        # 硬切：用「字符对齐前缀」逐步切，保证每片 token 数 <= size_tokens
+        rest = sentence
+        while rest:
+            piece = head_within_tokens(rest, size_tokens)
+            if not piece:
+                piece = rest[:1]
+            pieces.append(piece)
+            rest = rest[len(piece) :]
     return pieces
 
 
@@ -65,7 +69,10 @@ def chunk_text(
     size_tokens: int = 400,
     overlap_tokens: int = 60,
 ) -> list[ChunkDraft]:
-    """切块主函数。空文本返回 []，不返回一个空块。"""
+    """切块主函数。空文本返回 []，不返回一个空块。
+
+    上界契约：单块 token 数 <= size_tokens + overlap_tokens + 1
+    （+1 是重叠前缀与正文之间那个换行符）。"""
     if not text or not text.strip():
         return []
     if size_tokens <= 0:
@@ -93,8 +100,8 @@ def chunk_text(
         # 重叠部分：把上一块的尾巴接到这一块开头（第一块没有上一块，天然不重叠）
         prefix = ""
         if chunks and overlap_tokens > 0:
-            tail = truncate_to_tokens(chunks[-1].text, overlap_tokens)
-            if tail and not body.startswith(tail):
+            tail = tail_within_tokens(chunks[-1].text, overlap_tokens)
+            if tail:
                 prefix = tail + "\n"
         chunks.append(ChunkDraft(ordinal=len(chunks), text=(prefix + body)))
         buffer, buffer_tokens = [], 0

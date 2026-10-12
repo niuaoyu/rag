@@ -178,9 +178,14 @@ _store_cache: dict[tuple, QdrantVectorStore] = {}
 def get_vector_store(dim: int | None = None, cfg=default_settings) -> QdrantVectorStore:
     """按 (位置, collection, 维度) 复用同一个 client —— 嵌入式模式重复 open 同一目录会报锁冲突。"""
     if dim is None:
-        from app.services.embedding import build_embedder
+        from app.services.embedding import get_embedder
 
-        dim = build_embedder(cfg).dim
+        dim = get_embedder(cfg).dim
+    if not dim:
+        raise VectorStoreError(
+            "向量维度为 0：embedding 实现没有在构造时确定维度（本地 ONNX 模型需要预热一次前向）。"
+            "见 app/services/embedding.py 的 LocalOnnxEmbedder._warm_up"
+        )
     key = (cfg.qdrant_url or cfg.qdrant_path, cfg.qdrant_collection, dim)
     store = _store_cache.get(key)
     if store is None:

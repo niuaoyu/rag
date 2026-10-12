@@ -51,6 +51,7 @@ def rag_env(monkeypatch, tmp_path):
     - llm_api_key 置空 → /chat/ask 走 retrieval_only，不依赖外网
     """
     from app.core.config import settings as live_settings
+    from app.services.embedding import reset_embedder_cache
     from app.services.vector_store import reset_vector_store_cache
 
     monkeypatch.setattr(live_settings, "embedding_provider", "hash")
@@ -61,8 +62,10 @@ def rag_env(monkeypatch, tmp_path):
     monkeypatch.setattr(live_settings, "chunk_overlap_tokens", 20)
     monkeypatch.setattr(live_settings, "llm_api_key", "")
     reset_vector_store_cache()
+    reset_embedder_cache()
     yield live_settings
     reset_vector_store_cache()
+    reset_embedder_cache()
 
 
 @pytest.fixture

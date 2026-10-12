@@ -9,3 +9,4 @@ __pycache__/
 app.db
 uploads/**
 qdrant_data/
+models/

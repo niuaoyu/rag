@@ -14,6 +14,7 @@ from typing import Iterator, Protocol
 import httpx
 
 from app.core.config import settings as default_settings
+from app.core.http import resolve_verify
 
 
 class LLMError(Exception):
@@ -53,6 +54,7 @@ class OpenAICompatLLM:
             timeout=timeout,
             transport=transport,
             headers={"Authorization": f"Bearer {api_key}"},
+            verify=resolve_verify(),
         )
 
     def _payload(self, system: str, user: str, stream: bool) -> dict:

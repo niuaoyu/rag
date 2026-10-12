@@ -20,7 +20,7 @@ from app.core.tokenizer import count_tokens, tokenizer_backend
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.services.chunker import chunk_text
-from app.services.embedding import build_embedder
+from app.services.embedding import get_embedder
 from app.services.parser import ParseError, parse_document
 from app.services.vector_store import VectorRecord, get_vector_store
 
@@ -100,7 +100,7 @@ def process_document(doc_id: int, cfg=default_settings) -> None:
         db.query(Chunk).filter(Chunk.document_id == doc_id).delete()
         db.commit()
 
-        embedder = build_embedder(cfg)
+        embedder = get_embedder(cfg)
         store = get_vector_store(dim=embedder.dim, cfg=cfg)
         store.delete_document(doc_id)
 

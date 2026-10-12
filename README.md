@@ -47,7 +47,7 @@ python3 scripts/e2e_demo.py
 
 | 变量 | 作用 |
 | --- | --- |
-| `EMBEDDING_PROVIDER` | `hash`（离线、只有词面信息，仅用于本地/CI）/ `openai`（真语义模型） |
+| `EMBEDDING_PROVIDER` | `local`（本地 ONNX 语义模型，**无需 key**，推荐）/ `hash`（只有词面信息，仅用于 CI）/ `openai`（需 key） |
 | `QDRANT_URL` | 空 → 嵌入式模式（单进程）；填 → 走 Qdrant 服务端（生产） |
 | `LLM_API_KEY` | 空 → `retrieval_only` |
 | `CHUNK_SIZE_TOKENS` / `CHUNK_OVERLAP_TOKENS` | 切块参数，单位是 token（tiktoken cl100k_base） |
@@ -55,7 +55,7 @@ python3 scripts/e2e_demo.py
 ## 测试与评测
 
 ```bash
-python3 -m pytest tests -q --ignore=tests/debug   # 82 passed
+python3 -m pytest tests -q --ignore=tests/debug   # 85 passed
 python3 scripts/eval_retrieval.py --corpus samples --top-k 3   # hit@k / MRR
 ```
 
@@ -63,6 +63,17 @@ python3 scripts/eval_retrieval.py --corpus samples --top-k 3   # hit@k / MRR
 > 对外使用的检索数字必须在 `openai` 档下产生。
 
 ## 部署
+## 脚本一览（都在 `scripts/`）
+| 脚本 | 用途 |
+| --- | --- |
+| `e2e_demo.py` | 一键端到端演示 + 实测数字记录器（注册→上传→轮询→切块→提问+引用） |
+| `eval_retrieval.py` | 检索评测：文档级 recall@k / MRR，支持 `--provider hash|local|openai` 做 A/B |
+| `gen_eval_queries.py` | 用 LLM 生成"改写查询"评测集（禁用标题实词，专治词面检索） |
+| `fetch_embedding_model.py` | 拉本地 ONNX 语义模型（~95MB，带 sha256 校验） |
+| `fetch_corpus.py` | 拉评测语料（中文维基导言段 / arXiv 摘要），语料不进 git |
+| `upgrade_db.py` | 给已存在的 SQLite 补新列（`create_all` 不会 ALTER 已有表） |
+
+
 
 ```bash
 cp .env.example .env   # 填 JWT_SECRET / EMBEDDING_* / LLM_*

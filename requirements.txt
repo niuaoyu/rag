@@ -23,6 +23,11 @@ tiktoken
 qdrant-client
 numpy
 
+# m6 可选：本地语义 embedding（EMBEDDING_PROVIDER=local，无需 API key）
+# 模型文件用 scripts/fetch_embedding_model.py 拉取（~95MB，带 sha256 校验）
+onnxruntime
+tokenizers
+
 # m8 LLM 调用：直接用 httpx 打 OpenAI 兼容接口，不引厂商 SDK
 httpx
 

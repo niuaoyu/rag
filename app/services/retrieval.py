@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings as default_settings
 from app.models.chunk import Chunk
 from app.models.document import Document
-from app.services.embedding import build_embedder
+from app.services.embedding import get_embedder
 from app.services.vector_store import get_vector_store
 
 
@@ -45,7 +45,7 @@ def search_chunks(
         return []
 
     limit = top_k or cfg.retrieval_top_k
-    embedder = build_embedder(cfg)
+    embedder = get_embedder(cfg)
     store = get_vector_store(dim=embedder.dim, cfg=cfg)
     hits = store.search(
         user_id=user_id,

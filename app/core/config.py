@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     # 单位是 token（tiktoken cl100k_base），不是字符。char 兜底见 app/core/tokenizer.py
     chunk_size_tokens: int = 400
     chunk_overlap_tokens: int = 60
-    chunk_min_chars: int = 30          # 解析结果短于此值视为空文档 → failed
+    chunk_min_chars: int = 30
+    # tiktoken BPE 缓存目录：默认在 /tmp，被清理后会静默退化为估算
+    tiktoken_cache_dir: str = ""          # 解析结果短于此值视为空文档 → failed
 
     # ---- M6 向量入库 ----
     # embedding_provider: hash（离线确定性，仅用于测试/CI，不具备语义）| openai（OpenAI 兼容 /embeddings）
@@ -35,6 +37,9 @@ class Settings(BaseSettings):
     embedding_api_key: str = ""
     embedding_model: str = "embedding-3"
     embedding_dim: int = 256           # hash 提供方必须显式给维度；openai 提供方以接口返回为准
+    # 本地 ONNX 语义 embedding（无需 key）：模型文件由 scripts/fetch_embedding_model.py 拉取
+    embedding_local_dir: str = "models/bge-small-zh-v1.5"
+    embedding_max_tokens: int = 512
     qdrant_path: str = "./qdrant_data" # 本地嵌入式模式（单进程独占文件锁）
     qdrant_url: str = ""               # 非空则走远程 Qdrant（生产/Docker）
     qdrant_collection: str = "chunks"

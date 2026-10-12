@@ -27,6 +27,14 @@ def _get_encoder():
     if not _encoder_loaded:
         _encoder_loaded = True
         try:
+            import os
+
+            # tiktoken 默认把 BPE 文件缓存在 /tmp，**被清理后会静默退化成估算**（真实踩过：
+            # 测试结果因此变化）。允许用配置把它固定到项目内目录，避免环境漂移。
+            from app.core.config import settings as _settings
+
+            if _settings.tiktoken_cache_dir:
+                os.environ.setdefault("TIKTOKEN_CACHE_DIR", _settings.tiktoken_cache_dir)
             import tiktoken
 
             _encoder = tiktoken.get_encoding(ENCODING_NAME)
@@ -76,3 +84,47 @@ def truncate_to_tokens(text: str, max_tokens: int) -> str:
     if len(ids) <= max_tokens:
         return text
     return encoder.decode(ids[-max_tokens:])
+
+
+def tail_within_tokens(text: str, max_tokens: int) -> str:
+    """返回 text 的**字符对齐后缀**，其 token 数不超过 max_tokens。
+
+    为什么不用 `decode(encode(text)[-max_tokens:])`：那样拿到的字符串**不保证是原文本的子串**
+    （BPE 边界可能切到多字节字符中间，decode 出替换符），
+    之后任何 `in` / `startswith` 判断都会莫名其妙失败 —— 这个坑在切块重叠上真实踩过。
+    这里二分找最大的字符后缀，保证返回值一定是原文本的后缀。
+    """
+    if max_tokens <= 0 or not text:
+        return ""
+    if count_tokens(text) <= max_tokens:
+        return text
+    low, high = 0, len(text)
+    while low < high:
+        mid = (low + high + 1) // 2
+        if count_tokens(text[-mid:]) <= max_tokens:
+            low = mid
+        else:
+            high = mid - 1
+    return text[-low:] if low else ""
+
+
+
+
+def head_within_tokens(text: str, max_tokens: int) -> str:
+    """返回 text 的**字符对齐前缀**，其 token 数不超过 max_tokens（硬切块用它保证上界）。
+
+    为什么不用"按估算比例切一刀"：估算与实际计数不是线性关系，
+    切出来的片段可能仍然超预算（切块上界就守不住了）。二分前缀长度才能**由构造保证**上界。
+    """
+    if max_tokens <= 0 or not text:
+        return ""
+    if count_tokens(text) <= max_tokens:
+        return text
+    low, high = 0, len(text)
+    while low < high:
+        mid = (low + high + 1) // 2
+        if count_tokens(text[:mid]) <= max_tokens:
+            low = mid
+        else:
+            high = mid - 1
+    return text[:low] if low else text[:1]

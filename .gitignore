@@ -10,3 +10,4 @@ app.db
 uploads/**
 qdrant_data/
 models/
+.cline-home/

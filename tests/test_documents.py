@@ -58,7 +58,7 @@ def test_upload_chinese_filename(client, user_a):
 
 def test_upload_path_traversal_filename(client, user_a):
     _, _, token = user_a
-    response = client.get(
+    response = client.post(
         "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("../../etc/passwd.pdf", b"%PDF-1.4", "application/pdf")},

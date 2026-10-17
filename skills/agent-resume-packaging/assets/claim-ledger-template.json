@@ -1,0 +1,67 @@
+{
+  "_comment": "主张—证据账本模板。复制成自己的账本再填，不要直接改这个模板。字段说明见 references/claim-evidence-ledger.md。示例内容来自一个真实项目的可核验事实，用作格式示范。",
+  "version": 1,
+  "owner": "你的名字",
+  "target_roles": ["Agent 开发工程师"],
+  "internal_names": [
+    "RunManager",
+    "StreamBridge",
+    "execution_id"
+  ],
+  "claims": [
+    {
+      "id": "claim-agent-001",
+      "source_fact": "把知识库问答需要的文档能力抽成工具注册表：每个工具同时声明 JSON Schema 与可执行函数，执行时统一做参数校验、超时控制和异常收敛。",
+      "candidate_wording": "**分层工具编排：** 针对问答链路里能力调用散落、参数与权限校验重复的问题，把文档能力收敛成统一的工具注册表……",
+      "sources": [
+        "app/agent/tools.py",
+        "app/agent/document_tools.py",
+        "tests/test_agent_tools.py（10 条用例通过）"
+      ],
+      "responsibility_level": "负责模块",
+      "verification_status": "已确认",
+      "allowed_uses": ["Agent 开发岗", "后端开发岗"],
+      "interview_details": [
+        "为什么用线程加 Event 做超时，而不是线程池：卡死的工具不应占住 worker 让后续调用排队",
+        "参数校验放在工具层而不是路由层：模型给出的参数不可信",
+        "异常收敛成 [tool_error] observation，让模型自己决定换工具还是放弃"
+      ],
+      "boundary": "工具注册表、文档工具与超时机制由本人设计与实现；模型接入层只完成 OpenAI 兼容协议与假模型测试，未做线上灰度。",
+      "risk_notes": [],
+      "last_verified": "2026-10-17"
+    },
+    {
+      "id": "claim-agent-002",
+      "source_fact": "问答入口是有限步循环：模型决策 -> 调用工具 -> 把 observation 塞回上下文，步数与单步工具调用数都有上限，超预算或模型报错时降级返回可读提示。",
+      "candidate_wording": "**运行时预算与降级：** 为多步工具调用设置步数预算与单步调用上限，模型错误与工具错误分别收敛……",
+      "sources": [
+        "app/agent/loop.py",
+        "tests/test_agent_loop.py（12 条用例覆盖直接回答、多步、工具失败、预算耗尽、模型错误）"
+      ],
+      "responsibility_level": "负责模块",
+      "verification_status": "已确认",
+      "allowed_uses": ["Agent 开发岗"],
+      "interview_details": [
+        "为什么必须有步数预算：避免模型在工具失败后反复重试把成本打满",
+        "为什么工具错误不抛给请求层：一次工具失败不应该让整个问答 500",
+        "预算耗尽时返回什么：上一轮模型的部分结论加一句范围建议，而不是空响应"
+      ],
+      "boundary": "编排循环、预算与降级策略由本人实现；系统提示词是与 AI 结对调试后定稿。",
+      "risk_notes": ["尚未做真实模型下的成本对比，投递稿不要写任何成本下降百分比"],
+      "last_verified": "2026-10-17"
+    },
+    {
+      "id": "claim-agent-003",
+      "source_fact": "每次运行会写一份 JSONL 轨迹，记录每步的模型决策、工具调用参数摘要、耗时与错误。",
+      "candidate_wording": "【待补：补一次真实模型运行的轨迹样例与排障案例，再决定是否写进简历】",
+      "sources": [],
+      "responsibility_level": "参与",
+      "verification_status": "待确认",
+      "allowed_uses": [],
+      "interview_details": [],
+      "boundary": "轨迹落盘已实现并有测试覆盖；真实运行下的排障效果尚未验证。",
+      "risk_notes": ["当前只有测试产生的轨迹，没有真实用户问答的轨迹样本"],
+      "last_verified": null
+    }
+  ]
+}

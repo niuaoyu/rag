@@ -17,3 +17,7 @@ uvicorn[standard]
 pydantic-settings
 pytest
 httpx2
+
+# agent 问答层
+httpx
+

@@ -45,15 +45,15 @@
 
 | 步骤 | 交付物（可核验） | 对应账本证据 |
 | --- | --- | --- |
-| 工具化 | `app/agent/tools.py`（ToolSpec/ToolRegistry）、`app/agent/document_tools.py`（按用户绑定工具） | `tests/test_agent_tools.py` 10 条用例 |
-| 编排与预算 | `app/agent/loop.py`（有限步循环、步数预算、单步调用上限、模型/工具分别降级） | `tests/test_agent_loop.py` 12 条用例 |
+| 工具化 | `app/agent/tools.py`（ToolSpec/ToolRegistry）、`app/agent/document_tools.py`（按用户绑定工具） | `tests/test_agent_tools.py` 9 条用例 |
+| 编排与预算 | `app/agent/loop.py`（有限步循环、步数预算、单步调用上限、模型/工具分别降级） | `tests/test_agent_loop.py` 10 条用例 |
 | 观测 | `app/agent/trace.py`（JSONL 轨迹、写盘失败不影响请求） | 轨迹文件 + 轨迹测试 |
 | 接口 | `POST /api/v1/agent/ask`（`app/api/v1/agent.py`，未配置 Key 直接 503） | `tests/test_agent_api.py` 5 条用例 |
 | 模型接入 | `app/agent/llm.py`（OpenAI 兼容客户端 + `ScriptedLLM` 假模型） | 假模型驱动的确定性回归 |
 
 验证方式（本地）：
 ```bash
-python3 -m pytest -q          # 47 passed
+python3 -m pytest -q          # 81 passed（含 skills 下 34 条脚本用例）
 python3 -m pytest tests/test_agent_loop.py -q
 ```
 

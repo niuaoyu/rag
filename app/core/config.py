@@ -22,4 +22,13 @@ class Settings(BaseSettings):
 
     upload_dir: Path = Path("uploads")
 
+    # agent 问答层：步数预算、工具超时、轨迹目录和模型接入配置
+    agent_max_steps: int = 6
+    agent_tool_timeout_seconds: float = 5.0
+    agent_trace_dir: Path = Path("traces")
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_api_key: str = ""
+    llm_model: str = "gpt-4o-mini"
+    llm_timeout_seconds: float = 30.0
+
 settings = Settings()

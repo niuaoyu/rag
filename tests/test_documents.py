@@ -57,15 +57,25 @@ def test_upload_chinese_filename(client, user_a):
 
 
 def test_upload_path_traversal_filename(client, user_a):
+    """文件名里的 ../ 不能决定落盘位置：展示名保留原样，落盘名是 uuid。"""
     _, _, token = user_a
-    response = client.get(
+    response = client.post(
         "/api/v1/documents",
         headers=auth_header(token),
         files={"file": ("../../etc/passwd.pdf", b"%PDF-1.4", "application/pdf")},
     )
     assert response.status_code == 201
-    # 落盘路径是 uuid，不含路径穿越
-    # 这个断言需要查磁盘，M3 不强制
+    # 数据库里保留用户原始文件名，用于展示
+    assert response.json()["filename"] == "../../etc/passwd.pdf"
+
+    # 磁盘上只有 uuid 命名的一个文件，且路径没有逃出 upload_dir
+    from app.core.config import settings
+
+    stored = [path for path in settings.upload_dir.rglob("*") if path.is_file()]
+    assert len(stored) == 1
+    assert stored[0].suffix == ".pdf"
+    assert len(stored[0].stem) == 32 and stored[0].stem.isalnum()  # uuid4().hex
+    assert "passwd" not in stored[0].name
 
 
 def test_list_documents(client, user_a):
